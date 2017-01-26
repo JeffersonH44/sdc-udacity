@@ -9,6 +9,7 @@ x_size = image.shape[1]
 color_select = np.copy(image)
 line_image = np.copy(image)
 
+print(x_size, y_size)
 ### Parameters
 ## Color
 red_threshold = 192
