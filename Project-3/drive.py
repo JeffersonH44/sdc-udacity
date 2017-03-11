@@ -19,18 +19,17 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
+brightness = 30
 
 
 def process_image(img):
-    # note: numpy arrays are (row, col)!
-    #img = img[shape[0] / 4:shape[0] - 25, 0:shape[1]]
-    #print(type(img))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    img = img[60:-25, :, :]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_LANCZOS4)
-    #destination = np.zeros(img.shape)
-    #img = cv2.normalize(img, destination, alpha=-1, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    #print(img)
-    #img = np.expand_dims(img, axis=0)
+    img = np.where((255 - img) < brightness, 255, img + brightness)
+    # destination = np.zeros(img.shape)
+    # img = cv2.normalize(img, destination, alpha=-1, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    img = np.expand_dims(img, axis=2)
     return img
 
 
@@ -45,11 +44,11 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
-        image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = np.asarray(image)
+        original_image = Image.open(BytesIO(base64.b64decode(imgString)))
+        image_array = np.asarray(original_image)
         image = process_image(image_array)
         steering_angle = float(model.predict(image[None, :, :, :], batch_size=1))
-        throttle = 0.2
+        throttle = 0.4
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
@@ -57,7 +56,7 @@ def telemetry(sid, data):
         if args.image_folder != '':
             timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
             image_filename = os.path.join(args.image_folder, timestamp)
-            image.save('{}.jpg'.format(image_filename))
+            original_image.save('{}.jpg'.format(image_filename))
     else:
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
