@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 
 # parameters
-epochs = 20
+epochs = 30
 learning_rate = 0.0001
 batch_size = 50
 activation = 'tanh'
@@ -77,7 +77,7 @@ def generator(files, outputs, batch_size=256, augment_data=True):
 
 
 model = Sequential()
-#model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(128, 128, 1)))
+# model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(128, 128, 1)))
 model.add(Convolution2D(24, 5, 5, border_mode='valid', subsample=(2, 2), input_shape=(128, 128, 1)))
 model.add(AveragePooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.5))
@@ -87,9 +87,9 @@ model.add(AveragePooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.5))
 model.add(Activation(activation))
 model.add(Flatten())
-model.add(Dense(256, activation=activation))
+model.add(Dense(200, activation=activation))
 model.add(Dropout(0.5))
-model.add(Dense(128, activation=activation))
+model.add(Dense(100, activation=activation))
 model.add(Dropout(0.5))
 model.add(Dense(1, activation="tanh"))
 dataset = pickle.load(open("dataset.p", 'rb'))
