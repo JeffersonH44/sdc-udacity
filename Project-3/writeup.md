@@ -73,10 +73,10 @@ designed for 10 car controls and I only need one) until I saw that
 the model takes his first curve, later, in the second curve doesn't work
 well because it's a more close curve and the model predicts an small steering
 angle, so the model overfits over the larger curve (this is the reason that
-I recorded more laps from recovering than from the center of the road),
+I recorded more laps from recovering than from the center of the road *Section 4*),
 in order to deal with overfitting I reduce the fully connected layers to 3 layers
 and adjust their size, also I put dropout layers on each layer of the network
-(final model on section 5).
+(final model on *section 5*).
 
 With this adjustments I get the model to runs well on track 1(run1.mp4)
 and track 2 (run2.mp4 oldest simulator) taking in count that I only took
