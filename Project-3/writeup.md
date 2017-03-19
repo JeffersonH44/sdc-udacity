@@ -1,4 +1,4 @@
-#**Behavioral Cloning**
+# **Behavioral Cloning**
 
 ---
 
@@ -11,121 +11,187 @@ The goals / steps of this project are the following:
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
 
-
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image1]: ./model.png "Model Visualization"
+[image2]: ./cnn-architecture-624x890.png "Nvidia model"
 
-## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.
+### Files Submitted & Code Quality
 
----
-###Files Submitted & Code Quality
-
-####1. Submission includes all required files and can be used to run the simulator in autonomous mode
+#### 1. Submission includes all required files and can be used to run the simulator in autonomous mode
 
 My project includes the following files:
+
 * model.py containing the script to create and train the model
 * drive.py for driving the car in autonomous mode
 * model.h5 containing a trained convolution neural network
 * writeup.md summarizing the results
+* format.py loads the csv file and read all necessary data for the model.py
+file (generates a pickle file "dataset.p")
 
 #### 2. Submission includes functional code
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing
+
+Using the Udacity provided simulator and my drive.py file, the car
+can be driven autonomously around the track by executing
 ```sh
-python drive.py model.h5
+python drive.py my_model.h5
 ```
 
-or if you have a laptop with optimus and you want to run the model with GPU you can run it with:
+or if you have a laptop with optimus and you want to run the model
+with GPU you can run it with:
 
  ```sh
-optirun python drive.py model.h5
+optirun python drive.py my_model.h5
 ```
 
-####3. Submission code is usable and readable
+### Model Architecture and Training Strategy
 
-The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
+#### 1. Solution Design Approach
 
-###Model Architecture and Training Strategy
+At the preprocess step I made the following steps:
 
-####1. An appropriate model architecture has been employed
+* Take images from all cameras (center, left and right) and add a
+correction angle for left and right cameras, in order to get more data
+for the model (format.py, line 6, 12)
+* Crop the images, 60 pixels from above and 25 from below to
+get only an image of the road (model.py, line 25)
+* Convert image to grayscale to reduce the complexity of the model.
+* Image resize to 128x128, this makes the model more comfortable with
+the predictions because it make the road more smaller that the real one.
+* Brightness augmentation to deal with roads were the road is not clear,
+for example, track 2 of the oldest simulator contains mountains that
+produces a lot of shadow.
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24)
-
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18).
-
-####2. Attempts to reduce overfitting in the model
-
-The model contains dropout layers in order to reduce overfitting (model.py lines 21).
-
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
-
-####3. Model parameter tuning
-
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
-
-####4. Appropriate training data
-
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ...
-
-For details about how I created the training data, see the next section.
-
-###Model Architecture and Training Strategy
-
-####1. Solution Design Approach
-
-The overall strategy for deriving a model architecture was to ...
-
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
-
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting.
-
-To combat the overfitting, I modified the model so that ...
-
-Then I ...
-
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
-
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
-
-####2. Final Model Architecture
-
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
-
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
-
-####3. Creation of the Training Set & Training Process
-
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+In the beginning I took the Nvidia's model as an starting point:
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+Rather than using 66x200 images I used 128x128 as I did in the previous
+project, using this approach I didn't get nice result so I started to
+remove convolutional layers (I did this because Nvidia's model was
+designed for 10 car controls and I only need one) until I saw that
+the model takes his first curve, later, in the second curve doesn't work
+well because it's a more close curve and the model predicts an small steering
+angle, so the model overfits over the larger curve (this is the reason that
+I recorded more laps from recovering than from the center of the road),
+in order to deal with overfitting I reduce the fully connected layers to 3 layers
+and adjust their size, also I put dropout layers on each layer of the network
+(final model on section 5).
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+With this adjustments I get the model to runs well on track 1(run1.mp4)
+and track 2 (run2.mp4 oldest simulator) taking in count that I only took
+data from track 1.
 
-Then I repeated this process on track two in order to get more data points.
+For the second track on the latest simulator I have to take new data because
+the model generated before doesn't generalize well because the closed curves
+on the track, also it gets a little bit lost by the middle line, but when I
+trained with the new and oldest data, I didn't get so far, this
+is because it's necessary also to predict the throttle parameter
+but I will make this as a future work.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+#### 2. Attempts to reduce overfitting in the model
 
-![alt text][image6]
-![alt text][image7]
+* The data was divided on Train/Validation dataset (80% train, 20% validation),
+I don't see necessary to split that data also on test because I can use
+the simulator as my test dataset to see if it doesn't overfits.
+* Also, to avoid overfitting I used Dropout layers (lines 85, 89, 93, 95)
+on each layer of my model.
 
-Etc ....
+#### 3. Model parameter tuning
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+At the beginning I took the parameters of the previous project and the
+way I proceed was a trial an error test (like a grid search) because each training process
+took me about 15 min each, the following was the parameters used on the grid search:
 
+* Optimization model: Adam (I only used this because it works, and
+doesn't add new parameters)
+* Activation functions: tanh (I used this because it work in the previous
+project)
+* Epochs : 15, 20, 30, 40, 50
+* Learning rate: 0.0001, 0.001, 0.01, 0.1
+* Batch size: 50, 100, 150, 200, 250
+* Brightness for preprocess images: +10, +20, +30
+* Correction handle for images taken from right and left camera: 0.1, 0.2
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set.
+Getting better results on these parameters:
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+* Optimization model: Adam (model.py)
+* Epochs : 50 (model.py)
+* Learning rate: 0.0001 (model.py)
+* Batch size: 50 (model.py)
+* Brightness for preprocess images: +30 (model.py)
+* Correction handle for images taken from right and left camera: 0.1 (preprocess.py)
+
+#### 4. Appropriate training data
+
+For the training data I run the simulation and get the following data:
+
+* 2 laps on track 1 driving on the center of the road (forward and backwards)
+* 3 laps recovering from the right and left side of the road, just
+recording the recovery part and not all the laps (forward and backwards)
+
+For data augmentation I made a flip on X coordinates and multiply by -1
+their corresponding steering angle
+
+#### 5. Final model (model.py lines 79-95)
+
+I used the following model
+
+* Convolution 2D:
+    * Stride: 2
+    * Padding: valid
+    * Filter size: 24
+    + Convolution size: 5
+
+* Pooling: avg
+    * Size: 2
+
+* Dropout
+    * Probability: 0.5
+
+* Activation Layer:
+    kind = tanh
+
+* Convolution 2D:
+    * Stride: 2
+    * Padding: valid
+    * Filter size: 36
+    + Convolution size: 5
+
+* Pooling: avg
+    * Size: 2
+
+* Dropout
+    * Probability: 0.5
+
+* Activation Layer:
+    kind = tanh
+
+* Flatten layer:
+    size: 1764
+
+* Fully connected:
+    * Size: 256
+    * Activation: Tanh
+
+* Dropout
+    * Probability: 0.5
+
+* Fully connected:
+    * Size: 128
+    * Activation: Tanh
+
+* Dropout
+    * Probability: 0.5
+
+* Fully connected (output layer):
+    * Size: 1
+    * Activation: Tanh
+
+The model includes tanh layers to introduce non-linearity and there was
+an attempt to use data normalization (as you can see on line 81) but
+I didn't get better results.
+
+Here is a visualization of the final model:
+
+![alt text][image1]

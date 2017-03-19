@@ -12,6 +12,7 @@ import eventlet.wsgi
 from PIL import Image
 from flask import Flask
 from io import BytesIO
+from keras.utils.visualize_util import plot
 
 from keras.models import load_model
 
@@ -23,12 +24,14 @@ brightness = 30
 
 
 def process_image(img):
+    # image crop from height (60 pixels from above and 25 below)
     img = img[60:-25, :, :]
+    # convert to grayscale
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # image resize using Lanczos interpolation
     img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_LANCZOS4)
+    # add brightness to the image but clamping those numbers to 255
     img = np.where((255 - img) < brightness, 255, img + brightness)
-    # destination = np.zeros(img.shape)
-    # img = cv2.normalize(img, destination, alpha=-1, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     img = np.expand_dims(img, axis=2)
     return img
 
@@ -48,6 +51,7 @@ def telemetry(sid, data):
         image_array = np.asarray(original_image)
         image = process_image(image_array)
         steering_angle = float(model.predict(image[None, :, :, :], batch_size=1))
+        plot(model, show_layer_names=False, show_shapes=True, to_file="model1.png")
         throttle = 0.28
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
