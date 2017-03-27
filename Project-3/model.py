@@ -104,8 +104,6 @@ conv_output = Flatten()(actv2)
 
 # Merge inputs
 merge = Merge(mode='concat')([conv_output, speed_input])
-#dens1 = Dense(300, activation=activation)(merge)
-#drop3 = Dropout(0.5)(dens1)
 dens2 = Dense(256, activation=activation)(merge)
 drop4 = Dropout(0.5)(dens2)
 dens3 = Dense(128, activation=activation)(drop4)
@@ -114,27 +112,6 @@ main_output = Dense(2, activation=activation)(drop5)
 
 model = Model(input=[camera_input, speed_input], output=[main_output])
 
-
-"""
-# Neural network model
-model = Sequential()
-# model normalization was an attempt but I didn't get better results
-# model.add(Lambda(lambda x: (x / 255.0) - 0.5, ))
-model.add()
-model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.5))
-model.add(Activation(activation))
-model.add(Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2)))
-model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.5))
-model.add(Activation(activation))
-model.add(Flatten())
-model.add(Dense(300, activation=activation))
-model.add(Dropout(0.5))
-model.add(Dense(150, activation=activation))
-model.add(Dropout(0.5))
-model.add(Dense(1, activation=activation))
-"""
 dataset = pickle.load(open("dataset.p", 'rb'))
 X_train = dataset["data"]
 y_train = dataset["output"]
