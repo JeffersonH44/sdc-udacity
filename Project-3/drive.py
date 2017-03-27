@@ -20,7 +20,7 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
-brightness = 30
+brightness = 15
 
 
 def process_image(img):

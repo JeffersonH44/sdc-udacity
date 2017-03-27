@@ -11,11 +11,11 @@ import pickle
 import numpy as np
 
 # parameters
-epochs = 50
+epochs = 30
 learning_rate = 0.0001
 batch_size = 50
 activation = 'tanh'
-brightness = 10
+brightness = 15
 
 
 def process_image(img):
