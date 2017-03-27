@@ -20,7 +20,7 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
-brightness = 30
+brightness = 10
 
 
 def process_image(img):
@@ -40,19 +40,20 @@ def process_image(img):
 def telemetry(sid, data):
     if data:
         # The current steering angle of the car
-        steering_angle = data["steering_angle"]
+        steering_angle = np.float(data["steering_angle"])
         # The current throttle of the car
-        throttle = data["throttle"]
+        throttle = np.float(data["throttle"])
         # The current speed of the car
-        speed = data["speed"]
+        speed = np.float(data["speed"])
         # The current image from the center camera of the car
         imgString = data["image"]
         original_image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(original_image)
         image = process_image(image_array)
-        steering_angle = float(model.predict(image[None, :, :, :], batch_size=1))
-        plot(model, show_layer_names=False, show_shapes=True, to_file="model1.png")
-        throttle = 0.28
+        output = model.predict([image[None, :, :, :], np.array([[steering_angle, throttle, speed]])], batch_size=1)
+        #plot(model, show_layer_names=False, show_shapes=True, to_file="model1.png")
+        steering_angle = output[0][0]
+        throttle = output[0][1] * 1.4
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
