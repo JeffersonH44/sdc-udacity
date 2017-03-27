@@ -53,7 +53,7 @@ def telemetry(sid, data):
         output = model.predict([image[None, :, :, :], np.array([[steering_angle, throttle, speed]])], batch_size=1)
         #plot(model, show_layer_names=False, show_shapes=True, to_file="model1.png")
         steering_angle = output[0][0]
-        throttle = 0.28
+        throttle = output[0][1]
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 

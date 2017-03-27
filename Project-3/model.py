@@ -11,9 +11,9 @@ import pickle
 import numpy as np
 
 # parameters
-epochs = 30
+epochs = 40
 learning_rate = 0.0001
-batch_size = 50
+batch_size = 250
 activation = 'tanh'
 brightness = 15
 
@@ -139,6 +139,7 @@ dataset = pickle.load(open("dataset.p", 'rb'))
 X_train = dataset["data"]
 y_train = dataset["output"]
 
+plot(model, show_layer_names=False, show_shapes=True, to_file="model.png")
 # split dataset on train validation (80% training and 20% test)
 X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
