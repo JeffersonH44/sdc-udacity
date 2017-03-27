@@ -106,9 +106,9 @@ conv_output = Flatten()(actv2)
 merge = Merge(mode='concat')([conv_output, speed_input])
 #dens1 = Dense(300, activation=activation)(merge)
 #drop3 = Dropout(0.5)(dens1)
-dens2 = Dense(200, activation=activation)(merge)
+dens2 = Dense(256, activation=activation)(merge)
 drop4 = Dropout(0.5)(dens2)
-dens3 = Dense(100, activation=activation)(drop4)
+dens3 = Dense(128, activation=activation)(drop4)
 drop5 = Dropout(0.5)(dens3)
 main_output = Dense(2, activation=activation)(drop5)
 
@@ -152,6 +152,6 @@ model.compile(optimizer=adam,
 # in samples_per_epoch I multiply by 2 because I augment that dataset
 history = model.fit_generator(generator=generator(X_train, y_train, batch_size=batch_size),
                               validation_data=generator(X_validation, y_validation, augment_data=False),
-                              nb_epoch=epochs, samples_per_epoch=X_train.shape[0], nb_val_samples=X_validation.shape[0])
+                              nb_epoch=epochs, samples_per_epoch=X_train.shape[0] * 2, nb_val_samples=X_validation.shape[0])
 
 model.save('model.h5')
