@@ -52,6 +52,9 @@ class LineDetector():
         self.left_curvature_rad = None
         self.right_curvature_rad = None
 
+        # center distance
+        self.center_distance = None
+
         # Birds eye parameters
         bottom = 680
         middle = 470
@@ -246,8 +249,9 @@ class LineDetector():
             self.left_fit = np.polyfit(lefty, leftx, 2)
             self.right_fit = np.polyfit(righty, rightx, 2)
 
-    def update_curvature_rad(self, ploty):
+    def update_data(self, ploty, pos_left_line, pos_right_line):
         y_eval = np.max(ploty)
+        middle = y_eval / 2
 
         ym_per_pix = 30 / 720  # meters per pixel in y dimension
         xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
@@ -257,6 +261,7 @@ class LineDetector():
             2 * self.left_fit[0])
         self.right_curvature_rad = ((1 + (2 * self.right_fit[0] * y_eval * ym_per_pix + self.right_fit[1]) ** 2) ** 1.5) / np.absolute(
             2 * self.right_fit[0])
+        self.center_distance = abs(((pos_left_line + pos_right_line) / 2) - middle) * xm_per_pix
 
     def put_prediction(self, img, binary_warped):
         ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
@@ -281,15 +286,18 @@ class LineDetector():
         result = cv2.addWeighted(img, 1, newwarp, 0.3, 0)
 
         if self.current_frame == self.update_rad_frame or (self.left_curvature_rad is None and self.right_curvature_rad is None):
-            self.update_curvature_rad(ploty)
+            self.update_data(ploty, left_fitx[-1], right_fitx[-1])
             self.current_frame = 0
         else:
             self.current_frame += 1
 
-        result = cv2.putText(result, "left curve rad: %f.2 m" % self.left_curvature_rad, (50, 50),
+        result = cv2.putText(result, "Curve rad: %.2f (m)" % ((self.left_curvature_rad + self.right_curvature_rad) / 2,),
+                             (50, 50),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                              (0, 255, 0), 2, cv2.LINE_AA)
-        result = cv2.putText(result, "right curve rad: %f.2 m" % self.right_curvature_rad, (50, 75),
+        result = cv2.putText(result,
+                             "Distance from center: %.2f (m)" % self.center_distance,
+                             (50, 80),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                              (0, 255, 0), 2, cv2.LINE_AA)
 
