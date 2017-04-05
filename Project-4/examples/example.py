@@ -38,44 +38,30 @@ def get_calibration_data(glob_arg='../camera_cal/calibration*.jpg'):
             objpoints.append(objp)
             imgpoints.append(corners)
 
-    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_shape, None, None)
+    _, mtx, dist, _, _ = cv2.calibrateCamera(objpoints, imgpoints, img_shape, None, None)
     return mtx, dist
 
 
 # Calculate the lane line curvature
-def get_curvature(poly, mask):
-    yscale = 30 / 720  # Real world metres per y pixel
-    xscale = 3.7 / 700  # Real world metres per x pixel
-
-    # Convert polynomial to set of points for refitting
-    ploty = np.linspace(0, mask.shape[0] - 1, mask.shape[0])
+def get_curvature(poly, image):
+    yscale = 30 / 720
+    xscale = 3.7 / 700
+    ploty = np.linspace(0, image.shape[0] - 1, image.shape[0])
     fitx = poly[0] * ploty ** 2 + poly[1] * ploty + poly[2]
-
-    # Fit new polynomial
     fit_cr = np.polyfit(ploty * yscale, fitx * xscale, 2)
-
-    # Calculate curve radius
     curverad = ((1 + (2 * fit_cr[0] * np.max(ploty) * yscale + fit_cr[1]) ** 2) ** 1.5) / np.absolute(2 * fit_cr[0])
     return curverad
 
 
 # Find the offset of the car and the base of the lane lines
-def find_offset(l_poly, r_poly):
+def find_offset(l_poly, r_poly, image):
     lane_width = 3.7  # metres
-    h = 720  # height of image (index of image bottom)
-    w = 1280  # width of image
-
-    # Find the bottom pixel of the lane lines
+    h = image.shape[0]
+    w = image.shape[1]
     l_px = l_poly[0] * h ** 2 + l_poly[1] * h + l_poly[2]
     r_px = r_poly[0] * h ** 2 + r_poly[1] * h + r_poly[2]
-
-    # Find the number of pixels per real metre
     scale = lane_width / np.abs(l_px - r_px)
-
-    # Find the midpoint
     midpoint = np.mean([l_px, r_px])
-
-    # Find the offset from the centre of the frame, and then multiply by scale
     offset = (w / 2 - midpoint) * scale
     return offset
 
@@ -158,9 +144,9 @@ class LineDetector():
         l_channel = hls[:, :, 1]
         s_channel = hls[:, :, 2]
         # Sobel x
-        sobelx = cv2.Sobel(l_channel, cv2.CV_64F, 1, 0)  # Take the derivative in x
-        abs_sobelx = np.absolute(sobelx)  # Absolute x derivative to accentuate lines away from horizontal
-        scaled_sobel = np.uint8(255 * abs_sobelx / np.max(abs_sobelx))
+        sobel_x = cv2.Sobel(l_channel, cv2.CV_64F, 1, 0)  # Take the derivative in x
+        abs_sobel_x = np.absolute(sobel_x)  # Absolute x derivative to accentuate lines away from horizontal
+        scaled_sobel = np.uint8(255 * abs_sobel_x / np.max(abs_sobel_x))
 
         # Threshold x gradient
         sxbinary = np.zeros_like(scaled_sobel)
@@ -222,8 +208,8 @@ class LineDetector():
             # Find the peak of the left and right halves of the histogram
             # These will be the starting point for the left and right lines
             midpoint = np.int(histogram.shape[0] / 2)
-            leftx_base = np.argmax(histogram[:midpoint])
-            rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+            left_x_base = np.argmax(histogram[:midpoint])
+            right_x_base = np.argmax(histogram[midpoint:]) + midpoint
 
             # Choose the number of sliding windows
             # self.nwindows = 9
@@ -234,8 +220,8 @@ class LineDetector():
             nonzeroy = np.array(nonzero[0])
             nonzerox = np.array(nonzero[1])
             # Current positions to be updated for each window
-            leftx_current = leftx_base
-            rightx_current = rightx_base
+            left_x_current = left_x_base
+            right_x_current = right_x_base
             # Set the width of the windows +/- margin
             margin = self.margin
             # Set minimum number of pixels found to recenter window
@@ -249,10 +235,10 @@ class LineDetector():
                 # Identify window boundaries in x and y (and right and left)
                 win_y_low = binary_warped.shape[0] - (window + 1) * window_height
                 win_y_high = binary_warped.shape[0] - window * window_height
-                win_xleft_low = leftx_current - margin
-                win_xleft_high = leftx_current + margin
-                win_xright_low = rightx_current - margin
-                win_xright_high = rightx_current + margin
+                win_xleft_low = left_x_current - margin
+                win_xleft_high = left_x_current + margin
+                win_xright_low = right_x_current - margin
+                win_xright_high = right_x_current + margin
                 # Draw the windows on the visualization image
                 cv2.rectangle(out_img, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high), (0, 255, 0), 2)
                 cv2.rectangle(out_img, (win_xright_low, win_y_low), (win_xright_high, win_y_high), (0, 255, 0), 2)
@@ -266,9 +252,9 @@ class LineDetector():
                 right_lane_inds.append(good_right_inds)
                 # If you found > minpix pixels, recenter next window on their mean position
                 if len(good_left_inds) > minpix:
-                    leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
+                    left_x_current = np.int(np.mean(nonzerox[good_left_inds]))
                 if len(good_right_inds) > minpix:
-                    rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
+                    right_x_current = np.int(np.mean(nonzerox[good_right_inds]))
 
             # Concatenate the arrays of indices
             left_lane_inds = np.concatenate(left_lane_inds)
@@ -289,9 +275,9 @@ class LineDetector():
                 return None
 
             # Generate x and y values for plotting
-            ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
-            left_fitx = self.left_fit[0] * ploty ** 2 + self.left_fit[1] * ploty + self.left_fit[2]
-            right_fitx = self.right_fit[0] * ploty ** 2 + self.right_fit[1] * ploty + self.right_fit[2]
+            plot_y = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+            left_fit_x = self.left_fit[0] * plot_y ** 2 + self.left_fit[1] * plot_y + self.left_fit[2]
+            right_fitx = self.right_fit[0] * plot_y ** 2 + self.right_fit[1] * plot_y + self.right_fit[2]
 
             out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
             out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
@@ -300,8 +286,8 @@ class LineDetector():
             canvas = FigureCanvas(fig)
             ax = fig.gca()
             ax.imshow(out_img)
-            ax.plot(left_fitx, ploty, color='yellow')
-            ax.plot(right_fitx, ploty, color='yellow')
+            ax.plot(left_fit_x, plot_y, color='yellow')
+            ax.plot(right_fitx, plot_y, color='yellow')
             # fig.xlim(0, 1280)
             # fig.ylim(720, 0)
             width, height = fig.get_size_inches() * fig.get_dpi()
@@ -356,9 +342,9 @@ class LineDetector():
             canvas = FigureCanvas(fig)
             ax = fig.gca()
 
-            ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
-            left_fitx = self.left_fit[0] * ploty ** 2 + self.left_fit[1] * ploty + self.left_fit[2]
-            right_fitx = self.right_fit[0] * ploty ** 2 + self.right_fit[1] * ploty + self.right_fit[2]
+            plot_y = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+            left_fit_x = self.left_fit[0] * plot_y ** 2 + self.left_fit[1] * plot_y + self.left_fit[2]
+            right_fitx = self.right_fit[0] * plot_y ** 2 + self.right_fit[1] * plot_y + self.right_fit[2]
 
             out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
             window_img = np.zeros_like(out_img)
@@ -368,11 +354,11 @@ class LineDetector():
 
             # Generate a polygon to illustrate the search window area
             # And recast the x and y points into usable format for cv2.fillPoly()
-            left_line_window1 = np.array([np.transpose(np.vstack([left_fitx - self.margin, ploty]))])
-            left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx + self.margin, ploty])))])
+            left_line_window1 = np.array([np.transpose(np.vstack([left_fit_x - self.margin, plot_y]))])
+            left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fit_x + self.margin, plot_y])))])
             left_line_pts = np.hstack((left_line_window1, left_line_window2))
-            right_line_window1 = np.array([np.transpose(np.vstack([right_fitx - self.margin, ploty]))])
-            right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx + self.margin, ploty])))])
+            right_line_window1 = np.array([np.transpose(np.vstack([right_fitx - self.margin, plot_y]))])
+            right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx + self.margin, plot_y])))])
             right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
             # Draw the lane onto the warped blank image
@@ -380,11 +366,9 @@ class LineDetector():
             cv2.fillPoly(window_img, np.int_([right_line_pts]), (0, 255, 0))
             result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
             ax.imshow(result)
-            ax.plot(left_fitx, ploty, color='yellow')
-            ax.plot(right_fitx, ploty, color='yellow')
+            ax.plot(left_fit_x, plot_y, color='yellow')
+            ax.plot(right_fitx, plot_y, color='yellow')
             ax.set_title("Prediction")
-            # ax.xlim(0, 1280)
-            # ax.ylim(720, 0)
 
             width, height = fig.get_size_inches() * fig.get_dpi()
             canvas.draw()  # draw the canvas, cache the renderer
@@ -396,20 +380,20 @@ class LineDetector():
         # Calculate the new radii of curvature
         self.left_curvature_rad = get_curvature(self.left_fit, warped_image)
         self.right_curvature_rad = get_curvature(self.right_fit, warped_image)
-        self.center_distance = find_offset(self.left_fit, self.right_fit)
+        self.center_distance = find_offset(self.left_fit, self.right_fit, warped_image)
 
     def put_prediction(self, img, binary_warped):
-        ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
-        left_fitx = self.left_fit[0] * ploty ** 2 + self.left_fit[1] * ploty + self.left_fit[2]
-        right_fitx = self.right_fit[0] * ploty ** 2 + self.right_fit[1] * ploty + self.right_fit[2]
+        plot_y = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+        left_fit_x = self.left_fit[0] * plot_y ** 2 + self.left_fit[1] * plot_y + self.left_fit[2]
+        right_fit_x = self.right_fit[0] * plot_y ** 2 + self.right_fit[1] * plot_y + self.right_fit[2]
 
         # Create an image to draw the lines on
         warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
         color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
         # Recast the x and y points into usable format for cv2.fillPoly()
-        pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+        pts_left = np.array([np.transpose(np.vstack([left_fit_x, plot_y]))])
+        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fit_x, plot_y])))])
         pts = np.hstack((pts_left, pts_right))
 
         # Draw the lane onto the warped blank image
@@ -452,7 +436,6 @@ class LineDetector():
                              (225, 140),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                              color[0], 2, cv2.LINE_AA)
-
 
         return result
 
@@ -502,8 +485,7 @@ class LineDetector():
             black_space = np.zeros((stats.shape[0], binary_warped.shape[1] // 2, 3))
             stats = np.concatenate((stats, black_space), axis=1)
             output = np.concatenate((output, stats), axis=0)
-        #plt.imshow(output)
-        #plt.show()
+
         return output
 
     def image_output(self, image_path):
