@@ -15,6 +15,12 @@ The goals / steps of this project are the following:
 
 [image1]: ./model.png "Model Visualization"
 [image2]: ./cnn-architecture-624x890.png "Nvidia model"
+[image3]: ./cropped_image.png "Cropped image"
+[image4]: ./grayscale.png "grayscale image"
+[image5]: ./resize.png "resized image"
+[image6]: ./brightness.png "brightness image"
+[image7]: ./histogram.png "brightness image"
+[image8]: ./flip.png "flipped image"
 
 ### Files Submitted
 
@@ -55,14 +61,39 @@ At the preprocess step I made the following steps:
 * Take images from all cameras (center, left and right) and add a
 correction angle for left and right cameras, in order to get more data
 for the model (format.py, from line 8 to 19)
+
+* Dataset augmentation by flipping the image from the center, here is an
+image:
+
+![alt text][image8]
+
+With this and the previous step I got a histogram normally distributed
+of the steering angle as expected:
+
+![alt text][image7]
+
 * Crop the images, 60 pixels from above and 25 from below to
-get only an image of the road (model.py, line 23)
-* Convert image to grayscale to reduce the complexity of the model (model.py, line 25).
+get only an image of the road (model.py, line 23), here is an image:
+
+![alt text][image3]
+
+* Convert image to grayscale to reduce the complexity of the model (model.py, line 25),
+here is an image:
+
+![alt text][image4]
+
 * Image resize to 128x128, this makes the model more comfortable with
-the predictions because it make the road more smaller that the real one (model.py, line 27)
+the predictions because it make the road more smaller that the real one
+(model.py, line 27), here is an image:
+
+![alt text][image5]
+
 * Brightness augmentation to deal with roads were the road is not clear,
 for example, track 2 of the oldest simulator contains mountains that
-produces a lot of shadow (model.py, line 29) (note: at the end it doesn't work on that track).
+produces a lot of shadow (model.py, line 29)(note: at the end it doesn't
+work on that track), Here is an image:
+
+![alt text][image6]
 
 In the beginning I took the Nvidia's model as an starting point:
 
