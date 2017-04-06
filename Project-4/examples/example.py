@@ -7,8 +7,10 @@ import matplotlib.image as mpimg
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from moviepy.editor import VideoFileClip
-from IPython.display import HTML
 
+# CHANGE THIS VALUES
+source_video = '../project_video.mp4'
+output_video = '../output_images/output.mp4'
 
 def get_calibration_data(glob_arg='../camera_cal/calibration*.jpg'):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -55,7 +57,7 @@ def get_curvature(poly, image):
 
 # Find the offset of the car and the base of the lane lines
 def find_offset(l_poly, r_poly, image):
-    lane_width = 3.7  # metres
+    lane_width = 3.7  # meters
     h = image.shape[0]
     w = image.shape[1]
     l_px = l_poly[0] * h ** 2 + l_poly[1] * h + l_poly[2]
@@ -166,7 +168,7 @@ class LineDetector():
         # Stack each channel
         # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
         # be beneficial to replace this channel with something else.
-        color_binary = np.dstack((np.zeros_like(sxbinary), h_binary, s_binary, l_binary))
+        color_binary = np.dstack((np.zeros_like(sxbinary), h_binary, l_binary, s_binary))
 
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(h_binary == 1) | (s_binary == 1) | (sxbinary == 1) | (l_binary == 1)] = 1
@@ -382,7 +384,7 @@ class LineDetector():
         self.right_curvature_rad = get_curvature(self.right_fit, warped_image)
         self.center_distance = find_offset(self.left_fit, self.right_fit, warped_image)
 
-    def put_prediction(self, img, binary_warped):
+    def put_prediction(self, undistorted, binary_warped):
         plot_y = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
         left_fit_x = self.left_fit[0] * plot_y ** 2 + self.left_fit[1] * plot_y + self.left_fit[2]
         right_fit_x = self.right_fit[0] * plot_y ** 2 + self.right_fit[1] * plot_y + self.right_fit[2]
@@ -400,16 +402,16 @@ class LineDetector():
         cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
 
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
-        newwarp = cv2.warpPerspective(color_warp, self.Minv, (img.shape[1], img.shape[0]))
+        newwarp = cv2.warpPerspective(color_warp, self.Minv, (undistorted.shape[1], undistorted.shape[0]))
         # Combine the result with the original image
-        result = cv2.addWeighted(img, 1, newwarp, 0.3, 0)
+        result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
         self.update_data(binary_warped)
 
-        if self.current_frame == self.update_rad_frame or (
+        """if self.current_frame == self.update_rad_frame or (
                         self.left_curvature_rad is None and self.right_curvature_rad is None):
             self.current_frame = 0
         else:
-            self.current_frame += 1
+            self.current_frame += 1"""
 
         result = cv2.putText(result, "Left curve rad: %.2f (km)" % (self.left_curvature_rad * 0.001,),
                              (50, 50),
@@ -505,6 +507,5 @@ class LineDetector():
 mtx, dist = get_calibration_data()
 
 ld = LineDetector(mtx, dist, s_thresh=(0.6, 0.7), l_thresh=(0.8, 0.9), sx_thresh=(20, 100), n_windows=8, minpix=150)
-# ld.image_output('../signs_vehicles_xygrad.png')
 
-ld.produce_video('../project_video.mp4', '../output_images/output.mp4', video_stats=True)
+ld.produce_video(source_video, output_video, video_stats=True)
