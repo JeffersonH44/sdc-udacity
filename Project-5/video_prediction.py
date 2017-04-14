@@ -81,6 +81,7 @@ class VehiclePrediction:
         return img
 
     def image_pipeline(self, img, show=False):
+        draw_img = np.copy(img)
 
         if self.current_frame == 0:
             self.heat_map = np.zeros_like(img[:, :, 0]).astype(np.float)
@@ -111,17 +112,17 @@ class VehiclePrediction:
             self.current_frame += 1
             update = False
 
-        img = self.draw_labeled_bboxes(img, update=update)
+        draw_img = self.draw_labeled_bboxes(draw_img, update=update)
         # window_img = draw_boxes(draw_img, hot_windows, color=(0, 0, 255), thick=6)
         if show:
-            plt.imshow(img)
+            plt.imshow(draw_img)
             plt.show()
-        return img
+        return draw_img
 
     def produce_video(self, input_path, output_path, show=False):
         self.current_frame = 0
         clip2 = VideoFileClip(input_path)
-        clip = clip2.fl_image(self.image_pipeline)
+        clip = clip2.fl_image(lambda x: self.image_pipeline(x, show=show))
         clip.write_videofile(output_path, audio=False)
 
 
