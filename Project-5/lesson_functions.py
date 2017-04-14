@@ -169,6 +169,7 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
     for file in imgs:
         # Read in each one by one
         image = mpimg.imread(file)
+        image = (image * 255).astype(np.uint8)
         features.append(single_img_features(image, color_space=color_space, spatial_size=spatial_size,
                                             hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
                                             cell_per_block=cell_per_block, hog_channel=hog_channel,
