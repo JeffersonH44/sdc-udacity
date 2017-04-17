@@ -6,6 +6,17 @@ import matplotlib.pyplot as plt
 from skimage.feature import hog
 
 
+def subplots(plots, images, titles):
+    f, axes = plt.subplots(1, plots, figsize=(24, 9))
+    f.tight_layout()
+
+    for i in range(plots):
+        axes[i].set_title(titles[i])
+        axes[i].imshow(images[i])
+
+    plt.show()
+
+
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                      vis=False, feature_vec=True):
@@ -28,22 +39,37 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
 
 
 # Define a function to compute binned color features
-def bin_spatial(img, size=(32, 32)):
+def bin_spatial(img, size=(32, 32), show=False):
     # Use cv2.resize().ravel() to create the feature vector
     features = cv2.resize(img, size).ravel()
+    if show:
+        plt.plot(features)
+        plt.title("Spatial binned features")
+        plt.show()
+
     # Return the feature vector
     return features
 
 
 # Define a function to compute color histogram features
 # NEED TO CHANGE bins_range if reading .png files with mpimg!
-def color_hist(img, nbins=32, bins_range=(0, 256)):
+def color_hist(img, nbins=32, bins_range=(0, 256), show=True):
     # Compute the histogram of the color channels separately
     channel1_hist = np.histogram(img[:, :, 0], bins=nbins, range=bins_range)
     channel2_hist = np.histogram(img[:, :, 1], bins=nbins, range=bins_range)
     channel3_hist = np.histogram(img[:, :, 2], bins=nbins, range=bins_range)
     # Concatenate the histograms into a single feature vector
     hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+
+    bin_edges = channel1_hist[1]
+    bin_centers = (bin_edges[1:] + bin_edges[0:len(bin_edges) - 1]) / 2
+
+    if show:
+        for i, hist in enumerate([channel1_hist, channel2_hist, channel3_hist]):
+            plt.bar(bin_centers, hist[0])
+            plt.xlim(0, 256)
+            plt.title('Channel ' + str(i + 1) + ' histogram')
+            plt.show()
     # Return the individual histograms, bin_centers and feature vector
     return hist_features
 
@@ -125,19 +151,25 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
 def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                        spatial_feat=True, hist_feat=True, hog_feat=True):
+                        spatial_feat=True, hist_feat=True, hog_feat=True, show=True):
     # 1) Define an empty list to receive features
     img_features = []
     # 2) Apply color conversion if other than 'RGB'
     feature_image = convert_colorspace(img, color_space)
+    if show:
+        subplots(4, [img, feature_image[:, :, 0], feature_image[:, :, 1], feature_image[:, :, 2]],
+                 ["Original image",
+                  color_space + " channel: " + str(1),
+                  color_space + " channel: " + str(2),
+                  color_space + " channel: " + str(3)])
     # 3) Compute spatial features if flag is set
     if spatial_feat:
-        spatial_features = bin_spatial(feature_image, size=spatial_size)
+        spatial_features = bin_spatial(feature_image, size=spatial_size, show=show)
         # 4) Append features to list
         img_features.append(spatial_features)
     # 5) Compute histogram features if flag is set
     if hist_feat:
-        hist_features = color_hist(feature_image, nbins=hist_bins)
+        hist_features = color_hist(feature_image, nbins=hist_bins, show=show)
         # 6) Append features to list
         img_features.append(hist_features)
     # 7) Compute HOG features if flag is set
@@ -158,7 +190,15 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
         if hog_channel == 'ALL':
             hog_features = []
             for channel in range(feature_image.shape[2]):
-                hog_features.append(hog_descriptor.compute(feature_image[:, :, channel]).ravel())
+                hist = hog_descriptor.compute(feature_image[:, :, channel])
+                hog_features.append(hist.ravel())
+                if show:
+                    _, hog_image = hog(feature_image[:, :, channel], orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                              cells_per_block=(cell_per_block, cell_per_block), visualise=True,
+                                              feature_vector=False)
+                    plt.imshow(hog_image, cmap='gray')
+                    plt.title('HOG Visualization for channel ' + str(channel + 1))
+                    plt.show()
         else:
             hog_features = get_hog_features(feature_image[:, :, hog_channel], orient,
                                             pix_per_cell, cell_per_block, vis=False, feature_vec=True)
@@ -175,7 +215,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
 def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                      hist_bins=32, orient=9,
                      pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                     spatial_feat=True, hist_feat=True, hog_feat=True):
+                     spatial_feat=True, hist_feat=True, hog_feat=True, show=True):
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -183,15 +223,24 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
         # Read in each one by one
         image = mpimg.imread(file)
         image = (image * 255).astype(np.uint8)
+        if show:
+            plt.imshow(image)
+            plt.show()
         inv_image = cv2.flip(image, 1)
+        if show:
+            subplots(2, [image, inv_image], ["Original image", "Flipped image"])
         features.append(single_img_features(image, color_space=color_space, spatial_size=spatial_size,
                                             hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
                                             cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat))
+                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat, show=show))
+        if show:
+            plt.plot(features[-1])
+            plt.title("Features without normalization")
+            plt.show()
         features.append(single_img_features(inv_image, color_space=color_space, spatial_size=spatial_size,
                                             hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
                                             cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat))
+                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat, show=False))
     # Return list of feature vectors
     return features
 
