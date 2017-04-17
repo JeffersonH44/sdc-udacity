@@ -18,6 +18,7 @@ for i, dir in enumerate(['non-vehicles', 'vehicles']):
             if fnmatch(name, pattern):
                 data.append(os.path.join(path, name))
                 labels.append(i)
+                labels.append(i)
 
 data = np.array(extract_features(data, color_space=params.color_space, spatial_size=params.spatial_size,
                      hist_bins=params.hist_bins, orient=params.orient,

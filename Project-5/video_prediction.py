@@ -7,9 +7,6 @@ import itertools
 
 from scipy.ndimage.measurements import label
 
-source_video = 'test_video.mp4'
-output_video = './output_images/output.mp4'
-
 
 def create_windows(pyramid, image_size, xy_overlap=(0.6, 0.6)):
     output = []
@@ -21,7 +18,7 @@ def create_windows(pyramid, image_size, xy_overlap=(0.6, 0.6)):
 
 
 class VehiclePrediction:
-    def __init__(self, heat_map_frame=4):
+    def __init__(self, heat_map_frame=5):
         # load default classifier
         self.clf = pickle.load(open('classifier.p', 'rb'))
         # load default normalizer
@@ -30,7 +27,7 @@ class VehiclePrediction:
         self.heat_map_frame = heat_map_frame
         self.current_frame = 0
         self.heat_map = None
-        self.threshold = 2
+        self.threshold = heat_map_frame // 2
         self.label_map = None
 
         # for image processing
@@ -86,9 +83,9 @@ class VehiclePrediction:
         if self.current_frame == 0:
             self.heat_map = np.zeros_like(img[:, :, 0]).astype(np.float)
 
-        pyramid = [((64, 64), [400, 500]),
-                   ((96, 96), [450, 550]),
-                   ((128, 128), [500, 650]),
+        pyramid = [((64, 64), [350, 500]),
+                   ((96, 96), [400, 550]),
+                   ((128, 128), [400, 650]),
                    ]
         windows = create_windows(pyramid, img.shape[:2], xy_overlap=(0.5, 0.5))
 
@@ -104,7 +101,7 @@ class VehiclePrediction:
                                      hog_channel=self.hog_channel)
 
         self.add_heat(hot_windows)
-        if self.current_frame == self.heat_map_frame and show:
+        if self.current_frame == self.heat_map_frame:
             self.current_frame = 0
             self.apply_threshold()
             update = True
@@ -126,5 +123,7 @@ class VehiclePrediction:
         clip.write_videofile(output_path, audio=False)
 
 
+source_video = 'test_video.mp4'
+output_video = './output_images/output.mp4'
 vp = VehiclePrediction()
 vp.produce_video(source_video, output_video, show=False)

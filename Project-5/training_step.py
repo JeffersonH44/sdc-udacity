@@ -1,6 +1,6 @@
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from xgboost import XGBClassifier
@@ -26,8 +26,9 @@ if __name__ == '__main__':
     labels = np.load('labels.npy')
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.20, random_state=42)
 
-    clf = XGBClassifier(n_estimators=100, nthread=8, learning_rate=0.1, objective='binary:logistic')
+    clf = XGBClassifier(n_estimators=8, learning_rate=1, nthread=8, objective='binary:logistic')
     clf.fit(X_train, y_train)
+    print("training complete.")
     y_pred = clf.predict(X_test)
 
     print(classification_report(y_test, y_pred, target_names=target_names))
