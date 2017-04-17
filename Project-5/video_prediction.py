@@ -18,7 +18,7 @@ def create_windows(pyramid, image_size, xy_overlap=(0.6, 0.6)):
 
 
 class VehiclePrediction:
-    def __init__(self, heat_map_frame=5):
+    def __init__(self, heat_map_frame=7, threshold=6):
         # load default classifier
         self.clf = pickle.load(open('classifier.p', 'rb'))
         # load default normalizer
@@ -27,12 +27,10 @@ class VehiclePrediction:
         self.heat_map_frame = heat_map_frame
         self.current_frame = 0
         self.heat_map = None
-        self.threshold = heat_map_frame // 2
+        self.threshold = threshold
         self.label_map = None
 
         # for image processing
-        self.y_start = params.y_start
-        self.y_stop = params.y_stop
         self.orient = params.orient
         self.pix_per_cell = params.pix_per_cell
         self.cell_per_block = params.cell_per_block
@@ -40,7 +38,6 @@ class VehiclePrediction:
         self.hist_bins = params.hist_bins
         self.hog_channel = params.hog_channel
         self.color_space = params.color_space
-        self.scale = params.scale
 
     def add_heat(self, bbox_list):
         # Iterate through list of bboxes
@@ -83,9 +80,9 @@ class VehiclePrediction:
         if self.current_frame == 0:
             self.heat_map = np.zeros_like(img[:, :, 0]).astype(np.float)
 
-        pyramid = [((64, 64), [350, 500]),
+        pyramid = [((64, 64), [400, 500]),
                    ((96, 96), [400, 550]),
-                   ((128, 128), [400, 650]),
+                   ((128, 128), [450, 550]),
                    ]
         windows = create_windows(pyramid, img.shape[:2], xy_overlap=(0.5, 0.5))
 
@@ -123,7 +120,7 @@ class VehiclePrediction:
         clip.write_videofile(output_path, audio=False)
 
 
-source_video = 'test_video.mp4'
+source_video = 'project_video.mp4'
 output_video = './output_images/output.mp4'
-vp = VehiclePrediction()
+vp = VehiclePrediction(heat_map_frame=8, threshold=5)
 vp.produce_video(source_video, output_video, show=False)

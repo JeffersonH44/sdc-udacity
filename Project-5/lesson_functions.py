@@ -141,13 +141,24 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
         # 6) Append features to list
         img_features.append(hist_features)
     # 7) Compute HOG features if flag is set
+    cell_size = (pix_per_cell, pix_per_cell)  # h x w in pixels
+    block_size = (cell_per_block, cell_per_block)  # h x w in cells
+    nbins = orient  # number of orientation bins
+
+    # winSize is the size of the image cropped to an multiple of the cell size
+    hog_descriptor = cv2.HOGDescriptor(_winSize=(feature_image.shape[1] // cell_size[1] * cell_size[1],
+                                                 feature_image.shape[0] // cell_size[0] * cell_size[0]),
+                                       _blockSize=(block_size[1] * cell_size[1],
+                                                   block_size[0] * cell_size[0]),
+                                       _blockStride=(cell_size[1], cell_size[0]),
+                                       _cellSize=(cell_size[1], cell_size[0]),
+                                       _nbins=nbins)
+
     if hog_feat:
         if hog_channel == 'ALL':
             hog_features = []
             for channel in range(feature_image.shape[2]):
-                hog_features.extend(get_hog_features(feature_image[:, :, channel],
-                                                     orient, pix_per_cell, cell_per_block,
-                                                     vis=False, feature_vec=True))
+                hog_features.append(hog_descriptor.compute(feature_image[:, :, channel]).ravel())
         else:
             hog_features = get_hog_features(feature_image[:, :, hog_channel], orient,
                                             pix_per_cell, cell_per_block, vis=False, feature_vec=True)
@@ -155,6 +166,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
         img_features.append(hog_features)
 
     # 9) Return concatenated array of features
+    img_features[-1] = np.concatenate(img_features[-1]).ravel()
     return np.concatenate(img_features)
 
 
@@ -210,5 +222,6 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
         # 7) If positive (prediction == 1) then save the window
         if prediction == 1:
             on_windows.append(window)
+
     # 8) Return windows for positive detections
     return on_windows

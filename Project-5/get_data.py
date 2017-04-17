@@ -14,7 +14,8 @@ labels = []
 
 for i, dir in enumerate(['non-vehicles', 'vehicles']):
     for path, subdirs, files in os.walk(root + dir):
-        for name in files:
+        for j in range(0, len(files), 10):
+            name = files[j]
             if fnmatch(name, pattern):
                 data.append(os.path.join(path, name))
                 labels.append(i)
@@ -30,6 +31,8 @@ norm = StandardScaler().fit(data)
 data = norm.transform(data)
 
 print("Data size:", data.shape)
+
+index = pickle.load(open('best_index.p', 'rb'))
 
 np.save("data", data)
 np.save("labels", labels)
