@@ -15,6 +15,7 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
+[image0]: output_images/car_not_car.png
 [image1]: output_images/original.png
 [image2]: output_images/augmentation.png
 [image3]: output_images/channels.png
@@ -27,82 +28,179 @@ The goals / steps of this project are the following:
 [image10]: output_images/hog3.png
 [image11]: output_images/features.png
 [image12]: output_images/features_norm.png
+[image13]: output_images/window_scheme.png
+[image14]: output_images/heat_map.png
+[image15]: output_images/prediction.png
 [video1]: output_images/svm_output.mp4
 [video2]: output_images/ssd_output.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
-###Writeup / README
+# Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+## SVM and HOG features
 
-You're reading it!
+#### Data reading and augmentation
 
-###Histogram of Oriented Gradients (HOG)
+First I read all the images (64x64) that contains `vehicle` and `non-vehicle` samples, 
+to avoid overfitting on the classifier because the images were extracted from 
+time-line series, I took every 10 images from the dataset 
+(lines 21 through 29, file `get_data.py`).  
+ 
+Also we have to take in count that the images are on png format, so I should rescale 
+those images to a range between 0 and 255.
 
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+![alt text][image0]
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
-
-![alt text][image1]
-
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
-
+Then because of the few images that I got, I decided to augment the dataset 
+by flipping the images, as the example shows (line 229, file `lesson_functions.py`):
 
 ![alt text][image2]
 
-####2. Explain how you settled on your final choice of HOG parameters.
+#### Feature extraction
 
-I tried various combinations of parameters and...
+Then I extract all the features given the `params.py` file:
 
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+```python
+# for color space
+color_space = 'YCrCb'
+# spatial size transform
+spatial_feat = True
+spatial_size = (32, 32)
+# histogram
+hist_feat = True
+hist_bins = 32
+# HOG
+hog_feat = True
+orient = 11
+pix_per_cell = 16
+cell_per_block = 2
+hog_channel = 'ALL'
+```
 
-I trained a linear SVM using...
-
-###Sliding Window Search
-
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
-
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+* I convert to 'YCrCb' space (line 158, file `lesson_functions.py`)
 
 ![alt text][image3]
 
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
-
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+* I got spacial features from a resized image (from 64x64 to 32x32)
+(line 167, file `lesson_functions.py`)
 
 ![alt text][image4]
----
 
-### Video Implementation
-
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](project_video.mp4)
-
-
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
+* I got the color histogram from all channels of the image (line 172, 
+file `lesson_functions.py`) 
 
 ![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
 ![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
 ![alt text][image7]
 
+* I got the HOG features, I tried several combinations of parameters
+with the classifier, using only the first channel but at the end
+using all the channel was the best options to get better results with
+the classifier (lines 189-206, file `lesson_functions.py`).
 
+Also to improve the time detection I used the HOGDescriptor provided
+by openCV instead of the skimage implementation as you can see in 
+[this](https://discussions.udacity.com/t/good-tips-from-my-reviewer-for-this-vehicle-detection-project/232903/7) forum.
+
+```ipnbpython
+In [12]: %timeit -n100 -r1 opencv_hog.compute(image)
+100 loops, best of 1: 204 us per loop
+In [13]: %timeit -n100 -r1 hog(image)
+100 loops, best of 1: 6.27 ms per loop
+```
+
+Images from the hog features:
+
+![alt text][image8]
+![alt text][image9]
+![alt text][image10]
+
+At the end I concatenate all these features (spatial, color and hog),
+here's is an image of these features without normalization
+(lines 210, file `lesson_functions.py`):
+
+![alt text][image11]
+
+and with normalization using StandardScaler (lines 36-37, 
+file `get_data.py`):
+
+![alt text][image12]
+
+#### Training step:
+
+I used two classifiers with the GridSearch approach to get the best parameters (`training_step.py`):
+
+* **Gradient Boosting**: with the following parameters
+
+XGBClassifier(n_estimators=25, learning_rate=0.5, nthread=8, objective='binary:logistic')
+
+and I got the following results:
+
+|           | precision | recall | f1-score | support |
+|-----------|-----------|--------|----------|---------|
+| No car    | 1.0       | 1.0    | 1.0      | 383     |
+| car       | 1.0       | 1.0    | 1.0      | 328     |
+| avg/total | 1.0       | 1.0    | 1.0      | 711     |
+
+* **LinearSVC**: with the following parameters
+
+LinearSVC(loss='hinge', C=1.0)
+
+and I got the following results:
+
+|           | precision | recall | f1-score | support |
+|-----------|-----------|--------|----------|---------|
+| No car    | 0.99      | 0.99   | 0.99     | 383     |
+| car       | 0.99      | 0.99   | 0.99     | 328     |
+| avg/total | 0.99      | 0.99   | 0.99     | 711     |
+
+Even when the Gradient Boosting had better results on the test set, when I applied 
+to the videos I got better results with the LinearSVC.
+
+#### Sliding window and heat map
+
+I used a pyramidal scheme given the appearance of the cars on the videos with an 
+X and Y overlap of 0.6, the scheme is shown in the following image (lines 77-86, `video_prediction.py`):
+
+![alt text][image13]
+
+To avoid the false positives detection I used the heat map approach proposed in the lessons,
+I update every 7 frames and I threshold the heat map with 6 frames (lines 88, 94, `video_prediction.py`):
+
+![alt text][image14]
+
+And a final prediction:
+
+![alt text][image15]
+
+A project video output is here:
+
+![alt text][video1]
+
+## Single shot multibox detection (SSD)
+
+I tried a deep learning approach to see if it's more faster, but this model is faster only on a good GPU.
+This model is easy to feed, just take an image and resize it to 300x300 and put it to the neural network to
+get the predictions, then apply some post-processing to get the bounding boxes to the original image.
+ 
+The main idea of this network instead of using a sliding window is to discretize the whole image space with
+some prior boxes that you can move and resize to the ground truth to make the predictions, the main advantage
+of this approach that you reduce the search space that you can get with the sliding window if you want to detect
+different kind of objects that have different bounding boxes sizes.
+
+I took [this](https://github.com/cory8249/ssd_keras) implementation and adapt it to the video prediction 
+(source `video_prediction_1.py`) just to make more confident with the predictions I applied the heat map
+approach because the pre-trained model that I used is not working well. 
+([Pretrained model](https://mega.nz/#F!7RowVLCL!q3cEVRK9jyOSB9el3SssIA) download `weights_SSD300.hdf5`) 
+
+Here is the output video:
+
+![alt text][video2]
 
 ---
 

@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from skimage.feature import hog
 
 
-def subplots(plots, images, titles):
+def subplots(plots, images, titles, cmap="hot"):
     f, axes = plt.subplots(1, plots, figsize=(24, 9))
     f.tight_layout()
 
     for i in range(plots):
         axes[i].set_title(titles[i])
-        axes[i].imshow(images[i])
+        axes[i].imshow(images[i], cmap=cmap)
 
     plt.show()
 
@@ -193,9 +193,10 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
                 hist = hog_descriptor.compute(feature_image[:, :, channel])
                 hog_features.append(hist.ravel())
                 if show:
-                    _, hog_image = hog(feature_image[:, :, channel], orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
-                                              cells_per_block=(cell_per_block, cell_per_block), visualise=True,
-                                              feature_vector=False)
+                    _, hog_image = hog(feature_image[:, :, channel], orientations=orient,
+                                       pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                       cells_per_block=(cell_per_block, cell_per_block), visualise=True,
+                                       feature_vector=False)
                     plt.imshow(hog_image, cmap='gray')
                     plt.title('HOG Visualization for channel ' + str(channel + 1))
                     plt.show()
@@ -232,7 +233,8 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
         features.append(single_img_features(image, color_space=color_space, spatial_size=spatial_size,
                                             hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
                                             cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat, show=show))
+                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat,
+                                            show=show))
         if show:
             plt.plot(features[-1])
             plt.title("Features without normalization")
@@ -240,7 +242,8 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
         features.append(single_img_features(inv_image, color_space=color_space, spatial_size=spatial_size,
                                             hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
                                             cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat, show=False))
+                                            spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat,
+                                            show=False))
     # Return list of feature vectors
     return features
 
@@ -263,7 +266,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
                                        orient=orient, pix_per_cell=pix_per_cell,
                                        cell_per_block=cell_per_block,
                                        hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                       hist_feat=hist_feat, hog_feat=hog_feat)
+                                       hist_feat=hist_feat, hog_feat=hog_feat, show=False)
         # 5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
         # 6) Predict using your classifier
@@ -274,3 +277,12 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 
     # 8) Return windows for positive detections
     return on_windows
+
+
+def create_windows(pyramid, image_size, xy_overlap=(0.6, 0.6)):
+    output = []
+    for w_size, y_lims in pyramid:
+        windows = slide_window(image_size, x_start_stop=[None, None], y_start_stop=y_lims,
+                               xy_window=w_size, xy_overlap=xy_overlap)
+        output.extend(windows)
+    return output

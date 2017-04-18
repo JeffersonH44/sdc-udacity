@@ -8,15 +8,6 @@ import itertools
 from scipy.ndimage.measurements import label
 
 
-def create_windows(pyramid, image_size, xy_overlap=(0.6, 0.6)):
-    output = []
-    for w_size, y_lims in pyramid:
-        windows = slide_window(image_size, x_start_stop=[None, None], y_start_stop=y_lims,
-                               xy_window=w_size, xy_overlap=xy_overlap)
-        output.extend(windows)
-    return output
-
-
 class VehiclePrediction:
     def __init__(self, heat_map_frame=7, threshold=6):
         # load default classifier
@@ -51,7 +42,10 @@ class VehiclePrediction:
 
     def apply_threshold(self):
         # Zero out pixels below the threshold
+        # heat_map = np.copy(self.heat_map)
         self.heat_map[self.heat_map <= self.threshold] = 0
+
+        # subplots(2, [heat_map, self.heat_map], ["Original heat map", "heat map with threshold"], cmap='hot')
         # Return thresholded map
 
     def draw_labeled_bboxes(self, img, update=False):
@@ -74,7 +68,7 @@ class VehiclePrediction:
         # Return the image
         return img
 
-    def image_pipeline(self, img, show=False):
+    def image_pipeline(self, img, show=True):
         draw_img = np.copy(img)
 
         if self.current_frame == 0:
@@ -85,12 +79,6 @@ class VehiclePrediction:
                    ((128, 128), [450, 550]),
                    ]
         windows = create_windows(pyramid, img.shape[:2], xy_overlap=(0.5, 0.5))
-
-        # tst_img = np.copy(img)
-        # tst_img = draw_boxes(tst_img, windows)
-        # plt.imshow(tst_img)
-        # plt.show()
-
         hot_windows = search_windows(img, windows, clf=self.clf, scaler=self.scaler, color_space=self.color_space,
                                      spatial_size=self.spatial_size, hist_bins=self.hist_bins,
                                      orient=self.orient, pix_per_cell=self.pix_per_cell,
@@ -99,6 +87,9 @@ class VehiclePrediction:
 
         self.add_heat(hot_windows)
         if self.current_frame == self.heat_map_frame:
+            #tst_img = np.copy(img)
+            #tst_img = draw_boxes(tst_img, windows)
+            #subplots(2, [img, tst_img], ["Original image", "Sliding window scheme"])
             self.current_frame = 0
             self.apply_threshold()
             update = True
@@ -120,7 +111,7 @@ class VehiclePrediction:
         clip.write_videofile(output_path, audio=False)
 
 
-source_video = 'project_video.mp4'
-output_video = './output_images/output.mp4'
+source_video = 'test_video.mp4'
+output_video = './output_images/output_vid.mp4'
 vp = VehiclePrediction(heat_map_frame=8, threshold=5)
-vp.produce_video(source_video, output_video, show=False)
+vp.produce_video(source_video, output_video, show=True)

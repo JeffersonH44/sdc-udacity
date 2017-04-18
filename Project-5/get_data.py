@@ -8,8 +8,11 @@ from fnmatch import fnmatch
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
+# root directory of the dataset
 root = './dataset/'
+# kind of images that you want to get
 pattern = "*.png"
+# show preprocess
 show = True
 
 data = []
@@ -22,7 +25,7 @@ for i, dir in enumerate(['non-vehicles', 'vehicles']):
             if fnmatch(name, pattern):
                 data.append(os.path.join(path, name))
                 labels.append(i)
-                labels.append(i)
+                labels.append(i) # we add both because dataset augmentation
 
 data = np.array(extract_features(data, color_space=params.color_space, spatial_size=params.spatial_size,
                      hist_bins=params.hist_bins, orient=params.orient,
