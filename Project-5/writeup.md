@@ -29,7 +29,7 @@ The goals / steps of this project are the following:
 [image11]: output_images/features.png
 [image12]: output_images/features_norm.png
 [image13]: output_images/window_scheme.png
-[image14]: output_images/heat_map.png
+[image14]: output_images/threshold_heatmap.png
 [image15]: output_images/prediction.png
 [video1]: output_images/svm_output.mp4
 [video2]: output_images/ssd_output.mp4
