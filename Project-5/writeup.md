@@ -19,6 +19,8 @@ The goals / steps of this project are the following:
 * Run the following commands:
 
 ```bash
+pip install xgboost
+
 python get_data.py
 python training_step.py
 python video_prediction.py # or python video_prediction_1.py

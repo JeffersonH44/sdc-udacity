@@ -2,6 +2,7 @@
   <dictionary name="jefferson">
     <words>
       <w>discretize</w>
+      <w>thresholded</w>
     </words>
   </dictionary>
 </component>
