@@ -162,8 +162,11 @@ to the videos I got better results with the LinearSVC.
 
 #### Sliding window and heat map
 
-I used a pyramidal scheme given the appearance of the cars on the videos with an 
-X and Y overlap of 0.6, the scheme is shown in the following image (lines 77-86, `video_prediction.py`):
+I used a pyramidal scheme given the appearance of the cars on the videos,  
+'small' windows (64x64) on the top of the region that cars appears and 'bigger'
+windows (128x128) below of the region, I made this to reduce the search space 
+over the image, this windows has an overlap of 0.6.  the scheme is shown in the 
+following image (lines 77-86, `video_prediction.py`)
 
 ![alt text][image13]
 
@@ -172,7 +175,9 @@ I update every 7 frames and I threshold the heat map with 6 frames (lines 88, 94
 
 ![alt text][image14]
 
-And a final prediction:
+for combining overlapping bounding boxes I used the `scipy.ndimage.measurements.label()`
+over the thresholded heat-map to get the final bounding boxes (line 51-69, `video_prediction.py`),
+the final prediction image:
 
 ![alt text][image15]
 
