@@ -1,5 +1,4 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+## Writeup 
 
 ---
 
@@ -34,11 +33,9 @@ The goals / steps of this project are the following:
 [video1]: output_images/svm_output.mp4
 [video2]: output_images/ssd_output.mp4
 
-## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points  
 
 ---
-# Writeup / README
 
 ## SVM and HOG features
 
@@ -204,9 +201,18 @@ Here is the output video:
 
 ---
 
-###Discussion
+### Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+* One of the main problem that I got with the training was the overfitting, because I used the whole dataset 
+  that comes from a time series of images, and when I tried to detect the white car on the project_video
+  was really hard, to deal with this problem I just take every 10 images on the dataset, was a really simple
+  solution to deal with overfitting.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+* In the current implementation I extract HOG features from each window instead from the whole image and extract
+  the window, this is a big bottleneck on the prediction step that can be improved, but I also improve
+  the HOG extraction by changing from skimage to OpenCV implementation
+
+* The sliding window is really a big limitation of the model because if you want to detect object of different sizes,
+  you have to go again through all the image to detect it, that's why I made some exploration with deep learning 
+  approaches like SSD to make the model more robust. 
 
